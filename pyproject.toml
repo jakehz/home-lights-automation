@@ -1,0 +1,17 @@
+[project]
+name = "lightctl"
+version = "0.1.0"
+description = "One terminal command for GE/Cync (living room) and AiDot (bedroom) smart lights"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pycync>=0.6.1",
+    "python-aidot>=0.3.56",
+]
+
+[project.scripts]
+lightctl = "lightctl:main"
+
+[build-system]
+requires = ["uv_build>=0.11.29,<0.12.0"]
+build-backend = "uv_build"

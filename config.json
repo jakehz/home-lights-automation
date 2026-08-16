@@ -1,0 +1,9 @@
+{
+  "aidot": {
+    "country_code": "US"
+  },
+  "rooms": {
+    "living": "cync",
+    "bedroom": "aidot"
+  }
+}

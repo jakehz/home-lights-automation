@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lights</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #1c1d21;
+    --muted: #6b7078;
+    --border: #e3e5e9;
+    --accent: #f0b429;
+    --accent-ink: #3b2e05;
+    --on: #23a55a;
+    --off: #8a8f98;
+    --danger: #d13b3b;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.05);
+    --radius: 16px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171a; --card: #212327; --text: #eceef1; --muted: #9aa0a8;
+      --border: #33363c; --shadow: 0 1px 3px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: env(safe-area-inset-top) 0 40px;
+  }
+  header { padding: 28px 20px 8px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+  .note {
+    max-width: 1100px; margin: 12px auto 0; padding: 0 20px; color: var(--muted);
+    font-size: 13px;
+  }
+  main {
+    max-width: 1100px; margin: 18px auto 0; padding: 0 20px;
+    display: grid; gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+  .card {
+    position: relative; background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 18px 20px;
+    overflow: hidden;
+  }
+  .card h2 { margin: 0 0 2px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .chip {
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px;
+  }
+  .row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  button {
+    font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); padding: 9px 14px; font-weight: 600;
+    transition: transform .05s ease, background .15s ease, border-color .15s ease;
+  }
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .5; cursor: default; }
+  /* Base = neutral outline; the `.active` state reflects the room's live power. */
+  .btn-on, .btn-off { flex: 1; background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-on.active { background: var(--on); border-color: var(--on); color: #fff; }
+  .btn-off.active { background: var(--off); border-color: var(--off); color: #fff; }
+  .field { margin-top: 16px; }
+  .field label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 7px; }
+  .field .val { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 600; }
+  input[type=range] { width: 100%; -webkit-appearance: none; height: 8px; border-radius: 999px; outline: none; }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%;
+    background: #fff; border: 1px solid rgba(0,0,0,.2); box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer;
+  }
+  .track-bright { background: linear-gradient(90deg, #3a3a3a, var(--accent)); }
+  .track-temp { background: linear-gradient(90deg, #ffb46b, #fff4e0 45%, #cfe3ff); }
+  .presets, .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+  .preset { padding: 7px 12px; font-size: 13px; }
+  .swatch {
+    width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 2px solid var(--border);
+  }
+  .swatch.pick { display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+  .swatch.pick input { position: absolute; inset: -6px; border: 0; padding: 0; background: none; cursor: pointer; }
+  .status { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px; }
+  .status-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .status-head h3 { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .refresh { padding: 5px 10px; font-size: 12px; }
+  .dev { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 14px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--off); flex: none; }
+  .dot.on { background: var(--on); box-shadow: 0 0 8px var(--on); }
+  .dot.err { background: var(--danger); }
+  .dev .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dev .detail { color: var(--muted); font-size: 13px; }
+  .empty { color: var(--muted); font-size: 13px; padding: 4px 0; }
+  .err-line { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 0; }
+  .busy {
+    position: absolute; inset: 0; background: color-mix(in srgb, var(--card) 60%, transparent);
+    display: none; align-items: center; justify-content: center; backdrop-filter: blur(1px);
+  }
+  .busy.show { display: flex; }
+  .spinner {
+    width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--border);
+    border-top-color: var(--accent); animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  footer {
+    max-width: 1100px; margin: 22px auto 0; padding: 0 20px; color: var(--muted);
+    font-size: 13px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px;
+    font-size: 14px; opacity: 0; pointer-events: none; transition: all .25s ease; max-width: 90vw;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>💡 Lights</h1>
+  <p>Living room (Cync) &amp; bedrooms (AiDot), all in one place.</p>
+</header>
+<p class="note">Tip: close the Cync phone app while using this — Cync allows only one connection at a time. Commands take a moment as they reach the bulbs.</p>
+<main id="rooms"></main>
+<footer>
+  <label class="switch"><input type="checkbox" id="auto"> Auto-refresh status (~30s)</label>
+  <span id="updated"></span>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s, el=document) => el.querySelector(s);
+const api = {
+  async config() { return (await fetch('/api/config')).json(); },
+  async status(room) { return (await fetch('/api/status?room=' + encodeURIComponent(room))).json(); },
+  async command(room, action, value) {
+    const r = await fetch('/api/command', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({room, action, value})
+    });
+    return {status: r.status, body: await r.json()};
+  }
+};
+
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function summarize(body) {
+  // Build a short human summary from a command/status response.
+  const parts = [];
+  for (const room of body.rooms || []) {
+    const ok = room.devices.filter(d => d.ok).length;
+    const total = room.devices.length;
+    parts.push(`${room.label}: ${ok}/${total}`);
+  }
+  return parts.join(' · ');
+}
+
+// A reachable device is "on" unless its detail says off. Works for both status
+// details ("on, 30%" / "off, 100%") and command results ("dim 55%", "off", …).
+function deviceIsOn(d) {
+  if (!d.ok) return false;
+  const s = (d.detail || '').trim().toLowerCase();
+  return !(s === 'off' || s.startsWith('off'));
+}
+
+// Room power from its devices: 'on' if any reachable device is on, 'off' if all
+// reachable ones are off, or null when nothing is reachable (unknown).
+function roomPower(devices) {
+  const reachable = devices.filter(d => d.ok);
+  if (!reachable.length) return null;
+  return reachable.some(deviceIsOn) ? 'on' : 'off';
+}
+
+function setPower(card, state) {
+  $('.btn-on', card).classList.toggle('active', state === 'on');
+  $('.btn-off', card).classList.toggle('active', state === 'off');
+}
+
+function renderStatus(card, body) {
+  const list = $('.status-list', card);
+  list.innerHTML = '';
+  const devices = (body.rooms || []).flatMap(r => r.devices);
+  if (!devices.length) {
+    list.innerHTML = '<div class="empty">No devices.</div>';
+    setPower(card, null);
+    return;
+  }
+  for (const d of devices) {
+    const row = document.createElement('div');
+    row.className = 'dev';
+    const dot = d.ok ? (deviceIsOn(d) ? 'dot on' : 'dot') : 'dot err';
+    row.innerHTML = `<span class="${dot}"></span>
+      <span class="name">${d.name}</span>
+      <span class="detail">${d.detail || (d.ok ? 'off' : '')}</span>`;
+    list.appendChild(row);
+  }
+  setPower(card, roomPower(devices));
+}
+
+async function refreshStatus(card) {
+  const room = card.dataset.room;
+  setBusy(card, true, false);
+  try {
+    const body = await api.status(room);
+    if (body.error) { showErr(card, body.error); }
+    else { renderStatus(card, body); showErr(card, ''); }
+  } catch (e) {
+    showErr(card, 'Could not reach the server.');
+  } finally {
+    setBusy(card, false);
+    stampUpdated();
+  }
+}
+
+function setBusy(card, busy, disable=true) {
+  $('.busy', card).classList.toggle('show', busy);
+  if (disable) card.querySelectorAll('button, input').forEach(el => el.disabled = busy);
+}
+function showErr(card, msg) { $('.err-line', card).textContent = msg || ''; }
+function stampUpdated() {
+  $('#updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+}
+
+async function send(card, action, value) {
+  const room = card.dataset.room;
+  setBusy(card, true);
+  showErr(card, '');
+  try {
+    const {status, body} = await api.command(room, action, value);
+    if (status >= 400 || body.error) {
+      showErr(card, body.error || 'Command failed.');
+      toast('Error: ' + (body.error || status));
+    } else {
+      toast(summarize(body));
+      renderStatus(card, body);
+    }
+  } catch (e) {
+    showErr(card, 'Could not reach the server.');
+  } finally {
+    setBusy(card, false);
+    stampUpdated();
+  }
+}
+
+function buildCard(room, cfg) {
+  const card = document.createElement('section');
+  card.className = 'card';
+  card.dataset.room = room.key;
+  const chip = room.brand ? `<span class="chip">${room.brand}</span>` : `<span class="chip">All</span>`;
+  const swatches = cfg.swatches.map(s =>
+    `<button class="swatch" title="${s.name}" style="background:${s.hex}" data-color="${s.hex}"></button>`
+  ).join('');
+  const presets = cfg.presets.map(p =>
+    `<button class="preset" data-kelvin="${p.kelvin}">${p.name}</button>`
+  ).join('');
+  card.innerHTML = `
+    <h2>${room.label} ${chip}</h2>
+    <div class="row">
+      <button class="btn-on" data-act="on">On</button>
+      <button class="btn-off" data-act="off">Off</button>
+    </div>
+    <div class="field">
+      <label>Brightness <span class="val bright-val">50%</span></label>
+      <input type="range" class="track-bright bright" min="0" max="100" value="50">
+    </div>
+    <div class="field">
+      <label>Color temperature <span class="val temp-val">${Math.round((cfg.kelvin.min+cfg.kelvin.max)/2)}K</span></label>
+      <input type="range" class="track-temp temp" min="${cfg.kelvin.min}" max="${cfg.kelvin.max}" step="50" value="${Math.round((cfg.kelvin.min+cfg.kelvin.max)/2)}">
+      <div class="presets" style="margin-top:10px">${presets}</div>
+    </div>
+    <div class="field">
+      <label>Color</label>
+      <div class="swatches">
+        ${swatches}
+        <button class="swatch pick" title="Custom color">🎨<input type="color" value="#ff8800"></button>
+      </div>
+    </div>
+    <div class="status">
+      <div class="status-head">
+        <h3>Status</h3>
+        <button class="refresh">Refresh</button>
+      </div>
+      <div class="status-list"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="err-line"></div>
+    <div class="busy"><div class="spinner"></div></div>
+  `;
+
+  card.querySelectorAll('[data-act]').forEach(b =>
+    b.addEventListener('click', () => send(card, b.dataset.act)));
+
+  const bright = $('.bright', card), brightVal = $('.bright-val', card);
+  bright.addEventListener('input', () => brightVal.textContent = bright.value + '%');
+  bright.addEventListener('change', () => send(card, 'dim', bright.value));
+
+  const temp = $('.temp', card), tempVal = $('.temp-val', card);
+  temp.addEventListener('input', () => tempVal.textContent = temp.value + 'K');
+  temp.addEventListener('change', () => send(card, 'temp', temp.value));
+
+  card.querySelectorAll('.preset').forEach(b =>
+    b.addEventListener('click', () => { temp.value = b.dataset.kelvin; tempVal.textContent = b.dataset.kelvin + 'K'; send(card, 'temp', b.dataset.kelvin); }));
+
+  card.querySelectorAll('.swatch[data-color]').forEach(b =>
+    b.addEventListener('click', () => send(card, 'color', b.dataset.color)));
+
+  const picker = $('.swatch.pick input', card);
+  picker.addEventListener('change', () => send(card, 'color', picker.value));
+  picker.addEventListener('click', e => e.stopPropagation());
+
+  $('.refresh', card).addEventListener('click', () => refreshStatus(card));
+  return card;
+}
+
+let cards = [];
+async function init() {
+  let cfg;
+  try { cfg = await api.config(); }
+  catch (e) { document.body.insertAdjacentHTML('beforeend', '<p class="note">Could not load config.</p>'); return; }
+
+  const main = $('#rooms');
+  for (const room of cfg.rooms) {
+    const card = buildCard(room, cfg);
+    main.appendChild(card);
+    cards.push(card);
+  }
+  // Initial status load, sequentially (server serializes anyway).
+  for (const card of cards) await refreshStatus(card);
+
+  let autoTimer = null;
+  $('#auto').addEventListener('change', e => {
+    if (e.target.checked) {
+      autoTimer = setInterval(async () => { for (const c of cards) await refreshStatus(c); }, 30000);
+    } else { clearInterval(autoTimer); }
+  });
+}
+init();
+</script>
+</body>
+</html>
