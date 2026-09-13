@@ -15,7 +15,21 @@ from .colors import CCT, KELVIN_MAX, KELVIN_MIN, NAMED_RGB
 from .config import load_config
 from .engine import ACTIONS, BrandOutcome, build_action, run_action
 
-HOST = "127.0.0.1"
+import socket
+
+DEFAULT_HOST = "127.0.0.1"
+
+
+def _lan_ip() -> str:
+    """Best-effort local network IP of this machine (no traffic actually sent)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("192.168.255.255", 1))
+        return s.getsockname()[0]
+    except Exception:  # noqa: BLE001
+        return socket.gethostbyname(socket.gethostname())
+    finally:
+        s.close()
 
 
 def _rgb_hex(rgb: tuple[int, int, int]) -> str:
@@ -62,7 +76,7 @@ async def handle_config(request: web.Request) -> web.Response:
         "kelvin": {"min": KELVIN_MIN, "max": KELVIN_MAX},
         "presets": [
             {"name": n, "kelvin": k}
-            for n, k in [("Warm", CCT["WARM"]),
+                for n, k in [("Warm", CCT["WARM"]),
                          ("Neutral", CCT["NEUTRAL"]),
                          ("Daylight", CCT["DAYLIGHT"])]
         ],
@@ -119,9 +133,16 @@ def build_app() -> web.Application:
     return app
 
 
-def run_server(port: int = 8765) -> None:
-    """Start the web UI (blocks until Ctrl-C)."""
-    url = f"http://{HOST}:{port}"
-    print(f"lights web UI running at {url}", flush=True)
-    print("Open it in your browser. Press Ctrl-C to stop.", flush=True)
-    web.run_app(build_app(), host=HOST, port=port, print=None)
+def run_server(port: int = 8765, host: str = DEFAULT_HOST) -> None:
+    """Start the web UI (blocks until Ctrl-C).
+
+    ``host`` "127.0.0.1" = this Mac only; "0.0.0.0" = reachable on the LAN.
+    """
+    if host in ("0.0.0.0", "::"):
+        shown = f"http://{_lan_ip()}:{port}"
+        print(f"lights web UI running on your network at {shown}", flush=True)
+        print("Anyone on this Wi-Fi can open it (no password). Ctrl-C to stop.", flush=True)
+    else:
+        print(f"lights web UI running at http://{host}:{port}", flush=True)
+        print("Open it in your browser. Press Ctrl-C to stop.", flush=True)
+    web.run_app(build_app(), host=host, port=port, print=None)

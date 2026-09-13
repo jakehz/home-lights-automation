@@ -22,7 +22,7 @@ Usage:
   lights <room> <action> [value]
   lights <action> [value]          (applies to all rooms)
   lights setup                     (first-run login for both brands)
-  lights serve [--port N]          (start the web UI, default port 8765)
+  lights serve [--port N] [--lan]  (start the web UI; --lan = whole home network)
 
   room     living | bedroom | all
   action   on
@@ -158,15 +158,29 @@ async def main(argv: list[str] | None = None) -> int:
     return await do_command(room, action, cfg)
 
 
-def _parse_port(args: list[str]) -> int:
-    """Pull an optional --port N (default 8765) out of serve args."""
+def _parse_serve_args(args: list[str]) -> tuple[str, int]:
+    """Parse serve options: --port N (default 8765), --lan / --host X.
+
+    Returns ``(host, port)``. Host defaults to 127.0.0.1 (this Mac only);
+    --lan binds 0.0.0.0 (reachable on the local network).
+    """
+    port = 8765
+    host = "127.0.0.1"
     if "--port" in args:
         i = args.index("--port")
         try:
-            return int(args[i + 1])
+            port = int(args[i + 1])
         except (IndexError, ValueError):
             raise SystemExit("--port needs a number, e.g. lights serve --port 9000")
-    return 8765
+    if "--lan" in args:
+        host = "0.0.0.0"
+    if "--host" in args:
+        i = args.index("--host")
+        try:
+            host = args[i + 1]
+        except IndexError:
+            raise SystemExit("--host needs an address, e.g. lights serve --host 0.0.0.0")
+    return host, port
 
 
 def run() -> None:
@@ -177,7 +191,8 @@ def run() -> None:
     # outside asyncio.run().
     if argv and argv[0] == "serve":
         from .server import run_server
-        run_server(port=_parse_port(argv[1:]))
+        host, port = _parse_serve_args(argv[1:])
+        run_server(port=port, host=host)
         return
 
     try:
