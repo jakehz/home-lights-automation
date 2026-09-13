@@ -169,6 +169,18 @@ function deviceIsOn(d) {
   return !(s === 'off' || s.startsWith('off'));
 }
 
+function deviceBrightness(d) {
+  if (!d.ok || d.brightness === null || d.brightness === undefined || d.brightness === '') return null;
+  const n = Number(d.brightness);
+  return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : null;
+}
+
+function roomBrightness(devices) {
+  const levels = devices.map(deviceBrightness).filter(n => n !== null);
+  if (!levels.length) return null;
+  return Math.round(levels.reduce((a, b) => a + b, 0) / levels.length);
+}
+
 // Room power from its devices: 'on' if any reachable device is on, 'off' if all
 // reachable ones are off, or null when nothing is reachable (unknown).
 function roomPower(devices) {
@@ -182,7 +194,14 @@ function setPower(card, state) {
   $('.btn-off', card).classList.toggle('active', state === 'off');
 }
 
-function renderStatus(card, body) {
+function setBrightness(card, pct) {
+  if (pct === null || card.dataset.dragging === '1') return;
+  const bright = $('.bright', card);
+  bright.value = pct;
+  $('.bright-val', card).textContent = pct + '%';
+}
+
+function renderStatus(card, body, syncControls = false) {
   const list = $('.status-list', card);
   list.innerHTML = '';
   const devices = (body.rooms || []).flatMap(r => r.devices);
@@ -195,13 +214,14 @@ function renderStatus(card, body) {
     const row = document.createElement('div');
     row.className = 'dev';
     const dot = d.ok ? (d.power ? 'dot on' : 'dot') : 'dot err';
-
+    const pct = deviceBrightness(d);
     row.innerHTML = `<span class="${dot}"></span>
       <span class="name">${d.name}</span>
-      <span class="detail">${d.power ? 'On' : 'Off'} ${d.ok ? d.brightness + '%' : ''}</span>`;
+      <span class="detail">${d.power ? 'On' : 'Off'} ${pct === null ? '' : pct + '%'}</span>`;
     list.appendChild(row);
   }
   setPower(card, roomPower(devices));
+  if (syncControls) setBrightness(card, roomBrightness(devices));
 }
 
 async function refreshStatus(card) {
@@ -210,7 +230,7 @@ async function refreshStatus(card) {
   try {
     const body = await api.status(room);
     if (body.error) { showErr(card, body.error); }
-    else { renderStatus(card, body); showErr(card, ''); }
+    else { renderStatus(card, body, true); showErr(card, ''); }
   } catch (e) {
     showErr(card, 'Could not reach the server.');
   } finally {
@@ -292,13 +312,19 @@ function buildCard(room, cfg) {
     <div class="err-line"></div>
     <div class="busy"><div class="spinner"></div></div>
   `;
-
+  setBusy(card, true);
   card.querySelectorAll('[data-act]').forEach(b =>
     b.addEventListener('click', () => send(card, b.dataset.act)));
 
   const bright = $('.bright', card), brightVal = $('.bright-val', card);
-  bright.addEventListener('input', () => brightVal.textContent = bright.value + '%');
-  bright.addEventListener('change', () => send(card, 'dim', bright.value));
+  bright.addEventListener('input', () => {
+    card.dataset.dragging = '1';
+    brightVal.textContent = bright.value + '%';
+  });
+  bright.addEventListener('change', () => {
+    card.dataset.dragging = '0';
+    send(card, 'dim', bright.value);
+  });
 
   const temp = $('.temp', card), tempVal = $('.temp-val', card);
   temp.addEventListener('input', () => tempVal.textContent = temp.value + 'K');

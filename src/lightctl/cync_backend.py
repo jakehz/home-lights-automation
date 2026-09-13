@@ -138,9 +138,9 @@ def _status_line(dev) -> DeviceResult:
             return DeviceResult(dev.name, False, power=False)
         try:
             pct = dev.brightness
-            return DeviceResult(dev.name, True, power = True, brightness = str(pct))
+            return DeviceResult(dev.name, True, power = dev.is_on, brightness = str(pct))
         except Exception:  # noqa: BLE001 - no dimming capability
-            return DeviceResult(dev.name, True, power = True)
+            return DeviceResult(dev.name, True, power = dev.is_on)
     except Exception as exc:  # noqa: BLE001
         return DeviceResult(dev.name, False, str(exc))
 
