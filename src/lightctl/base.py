@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-
+from typing import Optional
 
 @dataclass
 class Action:
@@ -26,3 +26,5 @@ class DeviceResult:
     name: str
     ok: bool
     detail: str = ""
+    power: bool = False
+    brightness: Optional[str] = None

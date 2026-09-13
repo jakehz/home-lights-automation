@@ -141,7 +141,7 @@ def _status_line(dc) -> DeviceResult:
         return DeviceResult(name, False, "offline")
     power = "on" if st.on else "off"
     pct = round(st.dimming * 100 / 255)
-    return DeviceResult(name, True, f"{power}, {pct}%")
+    return DeviceResult(name, True, power = st.on, brightness = pct )
 
 
 async def apply(action: Action, session: ClientSession, country_code: str) -> list[DeviceResult]:

@@ -30,7 +30,7 @@ def _outcomes_json(outcomes: list[BrandOutcome]) -> dict:
                 "brand": o.brand,
                 "label": o.label,
                 "devices": [
-                    {"name": r.name, "ok": r.ok, "detail": r.detail}
+                    {"name": r.name, "ok": r.ok, "detail": r.detail, "power": r.power, "brightness": r.brightness}
                     for r in o.results
                 ],
             }

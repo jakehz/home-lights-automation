@@ -135,13 +135,12 @@ async def _apply_one(dev, action: Action) -> DeviceResult:
 def _status_line(dev) -> DeviceResult:
     try:
         if not dev.is_online:
-            return DeviceResult(dev.name, False, "offline")
-        power = "on" if dev.is_on else "off"
+            return DeviceResult(dev.name, False, power=False)
         try:
             pct = dev.brightness
-            return DeviceResult(dev.name, True, f"{power}, {pct}%")
+            return DeviceResult(dev.name, True, power = True, brightness = str(pct))
         except Exception:  # noqa: BLE001 - no dimming capability
-            return DeviceResult(dev.name, True, power)
+            return DeviceResult(dev.name, True, power = True)
     except Exception as exc:  # noqa: BLE001
         return DeviceResult(dev.name, False, str(exc))
 

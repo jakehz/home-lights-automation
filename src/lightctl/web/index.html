@@ -194,10 +194,11 @@ function renderStatus(card, body) {
   for (const d of devices) {
     const row = document.createElement('div');
     row.className = 'dev';
-    const dot = d.ok ? (deviceIsOn(d) ? 'dot on' : 'dot') : 'dot err';
+    const dot = d.ok ? (d.power ? 'dot on' : 'dot') : 'dot err';
+
     row.innerHTML = `<span class="${dot}"></span>
       <span class="name">${d.name}</span>
-      <span class="detail">${d.detail || (d.ok ? 'off' : '')}</span>`;
+      <span class="detail">${d.power ? 'On' : 'Off'} ${d.ok ? d.brightness + '%' : ''}</span>`;
     list.appendChild(row);
   }
   setPower(card, roomPower(devices));
