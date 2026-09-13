@@ -7,7 +7,7 @@ into its own units.
 """
 
 from __future__ import annotations
-
+from enum import IntEnum
 # Kelvin bounds we accept from the user for `temp`.
 KELVIN_MIN = 2700
 KELVIN_MAX = 6500
@@ -30,18 +30,22 @@ NAMED_RGB: dict[str, tuple[int, int, int]] = {
     "white": (255, 255, 255),
 }
 
+class CCT(IntEnum):
+    CANDLE = 2200
+    WARM = 2700
+    WARMWHITE = 2700
+    SOFT = 2900
+    SOFTWHITE = 2900
+    NEUTRAL = 4000
+    COOL = 4500
+    COOLWHITE = 4500
+    DAY = 6500
+    DAYLIGHT = 6500
+
+
 # "White" presets expressed as a color temperature in Kelvin.
 CCT_PRESETS: dict[str, int] = {
-    "candle": 2200,
-    "warm": 2700,
-    "warmwhite": 2700,
-    "soft": 2900,
-    "softwhite": 2900,
-    "neutral": 4000,
-    "cool": 4500,
-    "coolwhite": 4500,
-    "day": 6500,
-    "daylight": 6500,
+    
 }
 
 
@@ -50,10 +54,10 @@ def clamp(value: int, low: int, high: int) -> int:
     return max(low, min(high, value))
 
 
-def parse_color(text: str) -> tuple[str, object]:
+def parse_color(text: str) -> tuple[int, int, int]:
     """Parse a color argument.
 
-    Returns ``("rgb", (r, g, b))`` or ``("cct", kelvin)``.
+    Returns ``("rgb", (r, g, b))`` .
     Raises ``ValueError`` for anything unrecognized.
     """
     s = text.strip().lower().replace(" ", "").replace("_", "").replace("-", "")
@@ -62,19 +66,23 @@ def parse_color(text: str) -> tuple[str, object]:
         h = s.lstrip("#")
         if len(h) != 6:
             raise ValueError(f"'{text}' is not a valid #rrggbb hex color")
-        return "rgb", (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+        return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
-    if s in CCT_PRESETS:
-        return "cct", CCT_PRESETS[s]
     if s in NAMED_RGB:
-        return "rgb", NAMED_RGB[s]
+        return NAMED_RGB[s]
 
     raise ValueError(
         f"unknown color '{text}'. Try a #rrggbb hex, a name "
-        f"({', '.join(sorted(NAMED_RGB))}), or a white preset "
-        f"({', '.join(sorted(CCT_PRESETS))})."
+        f"({', '.join(sorted(NAMED_RGB))})."
     )
 
+def parse_temp(text: str) -> CCT:
+    s = text.strip().upper().replace(" ", "").replace("_", "").replace("-", "")
+
+    try:
+        return CCT[s]
+    except ValueError:
+        raise ValueError(f"'{text}' is not a valid color temperature.")
 
 def kelvin_to_cync_percent(kelvin: int) -> int:
     """Map a Kelvin value to Cync's 1-100 color-temperature scale.

@@ -11,7 +11,7 @@ import importlib.resources
 from aiohttp import web
 
 from .base import Action, DeviceResult
-from .colors import CCT_PRESETS, KELVIN_MAX, KELVIN_MIN, NAMED_RGB
+from .colors import CCT, KELVIN_MAX, KELVIN_MIN, NAMED_RGB
 from .config import load_config
 from .engine import ACTIONS, BrandOutcome, build_action, run_action
 
@@ -62,9 +62,9 @@ async def handle_config(request: web.Request) -> web.Response:
         "kelvin": {"min": KELVIN_MIN, "max": KELVIN_MAX},
         "presets": [
             {"name": n, "kelvin": k}
-            for n, k in [("Warm", CCT_PRESETS["warm"]),
-                         ("Neutral", CCT_PRESETS["neutral"]),
-                         ("Daylight", CCT_PRESETS["daylight"])]
+            for n, k in [("Warm", CCT["WARM"]),
+                         ("Neutral", CCT["NEUTRAL"]),
+                         ("Daylight", CCT["DAYLIGHT"])]
         ],
         "swatches": [
             {"name": n, "hex": _rgb_hex(rgb)}

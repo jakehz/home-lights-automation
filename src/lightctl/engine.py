@@ -13,7 +13,7 @@ from aiohttp import ClientSession
 
 from . import aidot_backend, cync_backend
 from .base import Action, DeviceResult
-from .colors import KELVIN_MAX, KELVIN_MIN, clamp, parse_color
+from .colors import KELVIN_MAX, KELVIN_MIN, clamp, parse_color, parse_temp, CCT
 from .config import brands_for_room
 
 ACTIONS = ("on", "off", "dim", "temp", "color", "status")
@@ -59,18 +59,21 @@ def build_action(action_name: str, value: str | None) -> Action:
         return Action(kind="dim", dim=clamp(level, 0, 100))
 
     if action_name == "temp":
-        try:
+        if value.isdigit():
             kelvin = int(value)
-        except ValueError:
-            raise ValueError(f"temp needs Kelvin {KELVIN_MIN}-{KELVIN_MAX}, got '{value}'")
-        return Action(kind="temp", kelvin=clamp(kelvin, KELVIN_MIN, KELVIN_MAX))
+            return Action(kind="temp", kelvin=clamp(kelvin, KELVIN_MIN, KELVIN_MAX))
+        else:
+            try:
+                return Action(kind = "temp", kelvin = parse_temp(value))
+            except ValueError:
+                raise ValueError(f"temp needs Kelvin {KELVIN_MIN}-{KELVIN_MAX} or one of the following: {[c.name for c in CCT]}, got '{value}'")
 
-    # color: may resolve to an RGB color or a white color-temperature preset.
-    kind, payload = parse_color(value)
-    if kind == "cct":
-        return Action(kind="temp", kelvin=int(payload))
-    return Action(kind="color", rgb=tuple(payload))  # type: ignore[arg-type]
+    if action_name == "color":
+        # color: may resolve to an RGB color.
+        payload = parse_color(value)
+        return Action(kind="color", rgb=tuple(payload))  # type: ignore[arg-type]
 
+    raise ValueError("Not a valid action.")
 
 def brand_room_label(cfg: dict, brand: str) -> str:
     """Human label like 'living room (Cync)' for a backend brand."""
